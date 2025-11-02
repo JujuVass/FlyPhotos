@@ -132,7 +132,6 @@ internal class CanvasController : ICanvasController
         switch (displayItem)
         {
             case AnimatedHqDisplayItem animDispItem:
-                Debug.WriteLine($"    → AnimatedHqDisplayItem case");
                 try
                 {
                     IRenderer firstFrameRenderer = new StaticImageRenderer(_d2dCanvas, _canvasViewState, animDispItem.Bitmap, _checkeredBrush, photo.SupportsTransparency(), RequestInvalidate, false);
@@ -156,20 +155,17 @@ internal class CanvasController : ICanvasController
                         newAnimator.Dispose();
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    Debug.WriteLine($"Failed to display GIF: {ex.Message}");
                 }
                 break;
             case HqDisplayItem hqDispItem:
-                Debug.WriteLine($"    → HqDisplayItem case");
                 {
                     IRenderer newRenderer = new StaticImageRenderer(_d2dCanvas, _canvasViewState, hqDispItem.Bitmap, _checkeredBrush, photo.SupportsTransparency(), RequestInvalidate);
                     SetupNewRenderer(newRenderer, _imageSize, hqDispItem.Rotation, isFirstPhotoEver, shouldResetView, true, isNewPhoto);
                     break;
                 }
             case PreviewDisplayItem previewDispItem:
-                Debug.WriteLine($"    → PreviewDisplayItem case");
                 {
                     // Sometimes preview aspect ratio is different from actual image aspect ratio.
                     // To avoid image distortion, we calculate the width based on actual image height and preview aspect ratio.
