@@ -107,7 +107,7 @@ internal class CanvasController : ICanvasController
         }
 
         bool isUpgradeFromPlaceholder = !_realImageDisplayedForCurrentPhoto && displayLevel > DisplayLevel.PlaceHolder;
-        bool shouldResetView = isNewPhoto || isUpgradeFromPlaceholder;
+        bool shouldResetView = isNewPhoto || isUpgradeFromPlaceholder || AppConfig.Settings.AlwaysFitToDisplay;
 
         _photoSessionState.CurrentDisplayLevel = displayLevel;
         var displayItem = photo.GetDisplayItemBasedOn(displayLevel);
@@ -115,7 +115,12 @@ internal class CanvasController : ICanvasController
         var size = photo.GetActualSize();
         _imageSize = new Size(size.Item1, size.Item2);
 
-        Debug.WriteLine($"Displaying {photo.FileName} at level {displayLevel} with size {_imageSize.Width}x{_imageSize.Height}");
+        // If displayItem is null (not yet loaded), we still need to handle view reset for new photos
+        // This is important for "Always fit to display" functionality
+        if (isNewPhoto && shouldResetView && displayItem == null)
+        {
+            _canvasViewManager.SetScaleAndPosition(_imageSize, 0, _d2dCanvas.GetSize(), isFirstPhotoEver);
+        }
 
         if (displayItem == null) return;
 
@@ -127,10 +132,12 @@ internal class CanvasController : ICanvasController
         switch (displayItem)
         {
             case AnimatedHqDisplayItem animDispItem:
+                Debug.WriteLine($"    → AnimatedHqDisplayItem case");
                 try
                 {
                     IRenderer firstFrameRenderer = new StaticImageRenderer(_d2dCanvas, _canvasViewState, animDispItem.Bitmap, _checkeredBrush, photo.SupportsTransparency(), RequestInvalidate, false);
-                    SetupNewRenderer(firstFrameRenderer, _imageSize, animDispItem.Rotation, isFirstPhotoEver, shouldResetView, true);
+                    // For animated items, pass the actual isNewPhoto flag, not shouldResetView
+                    SetupNewRenderer(firstFrameRenderer, _imageSize, animDispItem.Rotation, isFirstPhotoEver, shouldResetView, true, isNewPhoto);
 
                     IAnimator newAnimator = 
                         string.Equals(Path.GetExtension(photo.FileName), ".gif", StringComparison.OrdinalIgnoreCase)
@@ -142,7 +149,7 @@ internal class CanvasController : ICanvasController
                         await newAnimator.UpdateAsync(TimeSpan.Zero);
                         IRenderer newRenderer = new AnimatedImageRenderer(_d2dCanvas, _checkeredBrush, newAnimator, _animatorLock, photo.SupportsTransparency(), RequestInvalidate);
                         // For animation, we don't reset the view again, as the static frame is already there
-                        SetupNewRenderer(newRenderer, _imageSize, animDispItem.Rotation, false, false, false);
+                        SetupNewRenderer(newRenderer, _imageSize, animDispItem.Rotation, false, false, false, isNewPhoto);
                     }
                     else
                     {
@@ -155,12 +162,14 @@ internal class CanvasController : ICanvasController
                 }
                 break;
             case HqDisplayItem hqDispItem:
+                Debug.WriteLine($"    → HqDisplayItem case");
                 {
                     IRenderer newRenderer = new StaticImageRenderer(_d2dCanvas, _canvasViewState, hqDispItem.Bitmap, _checkeredBrush, photo.SupportsTransparency(), RequestInvalidate);
-                    SetupNewRenderer(newRenderer, _imageSize, hqDispItem.Rotation, isFirstPhotoEver, shouldResetView, true);
+                    SetupNewRenderer(newRenderer, _imageSize, hqDispItem.Rotation, isFirstPhotoEver, shouldResetView, true, isNewPhoto);
                     break;
                 }
             case PreviewDisplayItem previewDispItem:
+                Debug.WriteLine($"    → PreviewDisplayItem case");
                 {
                     // Sometimes preview aspect ratio is different from actual image aspect ratio.
                     // To avoid image distortion, we calculate the width based on actual image height and preview aspect ratio.
@@ -168,13 +177,17 @@ internal class CanvasController : ICanvasController
                     var correctedWidth = _imageSize.Height * previewAspectRatio;
 
                     IRenderer newRenderer = new StaticImageRenderer(_d2dCanvas, _canvasViewState, previewDispItem.Bitmap, _checkeredBrush, photo.SupportsTransparency(), RequestInvalidate);
-                    SetupNewRenderer(newRenderer, new Size(correctedWidth, _imageSize.Height), previewDispItem.Rotation, isFirstPhotoEver, shouldResetView, true);
+                    SetupNewRenderer(newRenderer, new Size(correctedWidth, _imageSize.Height), previewDispItem.Rotation, isFirstPhotoEver, shouldResetView, true, isNewPhoto);
                     break;
                 }
         }
+        
+        // Redraw after setup
+        _currentRenderer?.RestartOffScreenDrawTimer();
+        RequestInvalidate();
     }
 
-    private void SetupNewRenderer(IRenderer newRenderer, Size imageSize, int imageRotation, bool isFirstPhotoEver, bool resetView, bool forceThumbNailRedraw)
+    private void SetupNewRenderer(IRenderer newRenderer, Size imageSize, int imageRotation, bool isFirstPhotoEver, bool resetView, bool forceThumbNailRedraw, bool isNewPhoto = false)
     {
         _currentRenderer?.Dispose();
         _currentRenderer = newRenderer;
@@ -191,8 +204,6 @@ internal class CanvasController : ICanvasController
 
         if (forceThumbNailRedraw)
             _thumbNailController.CreateThumbnailRibbonOffScreen();
-        _currentRenderer.RestartOffScreenDrawTimer();
-        RequestInvalidate();
     }
 
     public void FitToScreen(bool animateChange)

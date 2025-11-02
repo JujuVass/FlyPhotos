@@ -105,6 +105,7 @@ internal sealed partial class Settings
         ButtonConfirmBeforeDelete.IsOn = AppConfig.Settings.ConfirmForDelete;
         ButtonShowFileName.IsOn = AppConfig.Settings.ShowFileName;
         ButtonShowCacheStatusExpander.IsOn = AppConfig.Settings.ShowCacheStatus;
+        ButtonAlwaysFitToDisplay.IsOn = AppConfig.Settings.AlwaysFitToDisplay;
 
         MainLayout.KeyDown += MainLayout_OnKeyDown;
         SliderHighResCacheSize.ValueChanged += SliderHighResCacheSize_OnValueChanged;
@@ -125,6 +126,7 @@ internal sealed partial class Settings
         ButtonConfirmBeforeDelete.Toggled += ButtonConfirmBeforeDelete_OnToggled;
         ButtonShowFileName.Toggled += ButtonShowFileName_OnToggled;
         ButtonShowCacheStatusExpander.Toggled += ButtonShowCacheStatusExpander_OnToggled;
+        ButtonAlwaysFitToDisplay.Toggled += ButtonAlwaysFitToDisplay_OnToggled;
 
 
         SettingsCardKeyboardShortCuts.Description = $"{Environment.NewLine}Left/Right Arrow Keys : Navigate Photos" +
@@ -189,6 +191,12 @@ internal sealed partial class Settings
     private async void ButtonConfirmBeforeDelete_OnToggled(object s, RoutedEventArgs e)
     {
         AppConfig.Settings.ConfirmForDelete = ButtonConfirmBeforeDelete.IsOn;
+        await AppConfig.SaveAsync();
+    }
+
+    private async void ButtonAlwaysFitToDisplay_OnToggled(object s, RoutedEventArgs e)
+    {
+        AppConfig.Settings.AlwaysFitToDisplay = ButtonAlwaysFitToDisplay.IsOn;
         await AppConfig.SaveAsync();
     }
 

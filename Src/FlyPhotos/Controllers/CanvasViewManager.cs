@@ -34,7 +34,9 @@ internal class CanvasViewManager(CanvasViewState canvasViewState, Action callbac
         // Use the reusable helper to calculate the scale factor.
         var scaleFactor = CalculateScreenFitScale(canvasSize, imageSize, imageRotation);
 
-        if (scaleFactor > 1.0f) scaleFactor = 1.0f;
+        // Only limit scale to 1.0 if "Always fit to display" is disabled
+        if (!AppConfig.Settings.AlwaysFitToDisplay && scaleFactor > 1.0f)
+            scaleFactor = 1.0f;
 
         // Note: The _imageRect should always be based on the un-rotated dimensions.
         // The rotation is applied later in the transform matrix.

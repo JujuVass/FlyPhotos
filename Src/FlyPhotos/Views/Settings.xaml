@@ -263,8 +263,14 @@
                             HeaderIcon="{ui:FontIcon Glyph=&#xE74D;}">
                             <ToggleSwitch x:Name="ButtonConfirmBeforeDelete" />
                         </controls:SettingsCard>
-
-
+                        <controls:SettingsCard
+                            x:Name="SettingsCardAlwaysFitToDisplay"
+                            Margin="0,5,0,0"
+                            Description="Always fit the image to display area on load"
+                            Header="Always fit to display area"
+                            HeaderIcon="{ui:FontIcon Glyph=&#xE9A6;}">
+                            <ToggleSwitch x:Name="ButtonAlwaysFitToDisplay" />
+                        </controls:SettingsCard>
 
 
 
